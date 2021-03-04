@@ -1,17 +1,16 @@
-# Road Runner Quickstart
+# FTC 16633 Code For The 2020 2021 Season
 
-An example FTC project using [Road Runner](https://github.com/acmerobotics/road-runner). **Note:** Road Runner is in alpha and many of its APIs are incubating.
+FTC code project for 2020-2021 Ultimate Goal code for our state (and maybe even worlds) robot.
 
 ## Installation
 
-For more detailed instructions on getting Road Runner setup in your own project, see the [Road Runner README](https://github.com/acmerobotics/road-runner#core).
+For more detailed instructions on getting FTC UG setup in your own project, see the [owner](https://github.com/AlessioToniolo) of this repo.
 
-1. Download or clone this repo with `git clone https://github.com/acmerobotics/road-runner-quickstart`.
+1. Download or clone this repo.
 
 1. Open the project in Android Studio and build `TeamCode` like any other `ftc_app` project.
 
-1. If you have trouble with multidex, enable proguard by changing `useProguard` to `true` in `build.common.gradle`.
+1. Use Android Studio's VCS (version control system) options **in order to fetch current code**. Code is updated on other computers, so ***every time you run the robot or upload code, please use the FETCH option in VCS to get the current code***, then you can upload and then run the code.
 
-## Documentation
-
-Check out the new [online quickstart documentation](https://acme-robotics.gitbook.io/road-runner/quickstart/introduction).
+## CI
+This uses continious integration for tests, so please make sure that the build passes.
