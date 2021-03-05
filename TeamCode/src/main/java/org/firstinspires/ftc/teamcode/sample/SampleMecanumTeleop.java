@@ -124,8 +124,8 @@ public class SampleMecanumTeleop extends LinearOpMode {
 
             // Intake
             if (gamepad1.dpad_down) {
-                frontRoller.setPower(-1.0);
-                bottomRoller.setPower(-1.0);
+                frontRoller.setPower(1.0);
+                bottomRoller.setPower(1.0);
             }
             if (gamepad1.dpad_right) {
                 frontRoller.setPower(0);
