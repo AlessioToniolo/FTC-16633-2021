@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.sample;
+package org.firstinspires.ftc.teamcode.utility.external;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -12,11 +12,11 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
-import org.firstinspires.ftc.teamcode.utility.external.TuningController;
+import org.firstinspires.ftc.teamcode.utility.MaxStaticVelocity;
 
 @Config
 @TeleOp
-public class SampleVelocityTuner extends LinearOpMode {
+public class VeloPIDTuner extends LinearOpMode {
     public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(0, 0, 0, 0);
 
     private final FtcDashboard dashboard = FtcDashboard.getInstance();
@@ -26,8 +26,7 @@ public class SampleVelocityTuner extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Change my id
-        // TODO: update to base robot and actual name
-        DcMotorEx myMotor = hardwareMap.get(DcMotorEx.class, "flywheelmotor");
+        DcMotorEx myMotor = hardwareMap.get(DcMotorEx.class, "shooter");
 
         // Reverse as appropriate
         // myMotor.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -54,9 +53,7 @@ public class SampleVelocityTuner extends LinearOpMode {
 
         telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
 
-        telemetry.addLine("READY!");
-        telemetry.addLine("IF TUNING kStatic MAKE SURE TO HAVE A FULL BATTERY");
-        telemetry.addLine("MAKE SURE TO COPY YOUR FINAL PIDF VALUES INTO THE PIDF METHODS!!!");
+        telemetry.addLine("Ready!");
         telemetry.update();
         telemetry.clearAll();
 

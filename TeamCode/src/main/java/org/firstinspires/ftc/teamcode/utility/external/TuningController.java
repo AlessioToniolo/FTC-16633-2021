@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utility;
+package org.firstinspires.ftc.teamcode.utility.external;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.noahbres.jotai.StateMachine;

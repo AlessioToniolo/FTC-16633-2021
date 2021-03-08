@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 
 import org.firstinspires.ftc.teamcode.utility.MaxStaticVelocity;
-import org.firstinspires.ftc.teamcode.utility.TuningController;
+import org.firstinspires.ftc.teamcode.utility.external.TuningController;
 
 @TeleOp
 public class SampleBuiltInVelocity extends LinearOpMode {
