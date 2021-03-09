@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -53,7 +54,7 @@ public class SampleMecanumTeleop extends LinearOpMode {
         double armMotorPower = 0;
 
         // Shooter motor
-        DcMotor shooter = hardwareMap.dcMotor.get("shooter");
+        DcMotorEx shooter = hardwareMap.get(DcMotorEx.class, "shooter");
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -168,6 +169,9 @@ public class SampleMecanumTeleop extends LinearOpMode {
                 toggleShooter = !toggleShooter;
             }
             prevValueShooter = gamepad1.dpad_up;
+
+            telemetry.addData("RPM: ", shooter.getVelocity());
+            telemetry.update();
         }
     }
 
