@@ -1,3 +1,4 @@
+![CI](https://github.com/AlessioToniolo/FTC-16633-2021/actions/workflows/main.yml/badge.svg)
 # FTC 16633 Code For The 2020 2021 Season
 
 FTC code project for 2020-2021 Ultimate Goal code for our state (and maybe even worlds) robot.
