@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -14,8 +15,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.teamcode.utility.MaxStaticVelocity;
-import org.firstinspires.ftc.teamcode.utility.external.TuningController;
 
 @TeleOp
 public class SampleMecanumTeleop extends LinearOpMode {
@@ -26,18 +25,6 @@ public class SampleMecanumTeleop extends LinearOpMode {
     // Shooter Toggle Fields
     boolean prevValueShooter = false;
     boolean toggleShooter = false;
-
-    // Speed control
-    boolean speedControl = false;
-    boolean prevValueSpeed = false;
-
-    // Intake Toggle Fields
-    boolean prevValueIntake = false;
-    boolean toggleIntake = false;
-
-    // PIDF fields
-    double encoderVelo = 0.0;
-    DcMotorEx shooter;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -67,7 +54,7 @@ public class SampleMecanumTeleop extends LinearOpMode {
         double armMotorPower = 0;
 
         // Shooter motor
-        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+        DcMotorEx shooter = hardwareMap.get(DcMotorEx.class, "shooter");
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -79,9 +66,7 @@ public class SampleMecanumTeleop extends LinearOpMode {
 
         wobbleArm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        shooter.setVelocityPIDFCoefficients(10, 13.9, 0, MaxStaticVelocity.maxStaticPIDFVelocity);
+        shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         leftFront.setDirection(DcMotor.Direction.FORWARD);
         leftRear.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -133,37 +118,20 @@ public class SampleMecanumTeleop extends LinearOpMode {
             double rightRearPower = mag * Math.cos(newTheta + (Math.PI/4)) + gamepad1.right_stick_x;
 
             // Set motor powers
-            if (!speedControl) {
-                leftFront.setPower(leftFrontPower);
-                leftRear.setPower(leftRearPower);
-                rightFront.setPower(rightFrontPower);
-                rightRear.setPower(rightRearPower);
-            } else {
-                leftFront.setPower(0.4 * leftFrontPower);
-                leftRear.setPower(0.4 * leftRearPower);
-                rightFront.setPower(0.4 * rightFrontPower);
-                rightRear.setPower(0.4 * rightRearPower);
-            }
-
-
+            leftFront.setPower(leftFrontPower);
+            leftRear.setPower(leftRearPower);
+            rightFront.setPower(rightFrontPower);
+            rightRear.setPower(rightRearPower);
 
             // Intake
             if (gamepad1.dpad_down) {
                 frontRoller.setPower(1.0);
                 bottomRoller.setPower(1.0);
             }
-
-            if (gamepad1.dpad_down && gamepad1.dpad_down != prevValueIntake) {
-                if (!toggleIntake) {
-                    frontRoller.setPower(1.0);
-                    bottomRoller.setPower(1.0);
-                } else {
-                    frontRoller.setPower(0);
-                    bottomRoller.setPower(0);
-                }
-                toggleIntake = !toggleIntake;
+            if (gamepad1.dpad_right) {
+                frontRoller.setPower(0);
+                bottomRoller.setPower(0);
             }
-            prevValueIntake = gamepad1.dpad_down;
 
             // Wobble Servo
             // wobble servo opens
@@ -194,8 +162,7 @@ public class SampleMecanumTeleop extends LinearOpMode {
             // Shooter Toggle
             if (gamepad1.dpad_up && gamepad1.dpad_up != prevValueShooter) {
                 if (!toggleShooter) {
-                    //shooter.setVelocity(-(angularSpeed(0.9)));
-                    setBasicVelocity(0.85);
+                    shooter.setPower(-1.0);
                 } else {
                     shooter.setPower(0);
                 }
@@ -203,15 +170,10 @@ public class SampleMecanumTeleop extends LinearOpMode {
             }
             prevValueShooter = gamepad1.dpad_up;
 
-            if (gamepad1.y && gamepad1.y != prevValueSpeed) {
-                if (!speedControl) {
-                    speedControl = true;
-                } else {
-                    speedControl = false;
-                }
-                //speedControl = !speedControl;
+            while (gamepad1.a) {
+                frontRoller.setPower(-1.0);
+                bottomRoller.setPower(-1.0);
             }
-            prevValueSpeed = gamepad1.y;
 
             telemetry.addData("RPM: ", shooter.getVelocity());
             telemetry.update();
@@ -225,19 +187,5 @@ public class SampleMecanumTeleop extends LinearOpMode {
             //telemetry.addData("Path", "Leg 1: %2.5f S Elapsed", runtime.seconds());
             //telemetry.update();
         }
-    }
-
-    // Converts a power into an angular rate
-    public double angularSpeed(double power) {
-        // TODO: update variable if F value is tuned
-        double MAX_TUNED_F_VELOCITY = 2357.3381295;
-        // The returned value
-        double angularPower = MAX_TUNED_F_VELOCITY * power;
-        return angularPower;
-    }
-
-    public void setBasicVelocity(double power) {
-        encoderVelo = -((power * (TuningController.MOTOR_MAX_RPM / 60)) * TuningController.MOTOR_TICKS_PER_REV);
-        shooter.setVelocity(encoderVelo);
     }
 }
