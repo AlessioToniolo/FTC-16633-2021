@@ -6,6 +6,9 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -17,7 +20,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.utility.MaxStaticVelocity;
 import org.firstinspires.ftc.teamcode.utility.PoseStorage;
+import org.firstinspires.ftc.teamcode.utility.external.TuningController;
 
 @Autonomous(group = "competition")
 public class CompetitionAuto extends LinearOpMode {
@@ -30,14 +35,19 @@ public class CompetitionAuto extends LinearOpMode {
 
     // Global access to the subassemblies' motors and servos
     DcMotor wobbleArm;
+    DcMotorEx shooter;
+    double encoderVelo = 0.0;
+    public static PIDCoefficients PID = new PIDCoefficients(14,0,10);
+    Servo wobbleServo;
+    Servo shooterServo;
+    DcMotor frontRoller;
+    DcMotor bottomRoller;
 
     // For setting a clock in the opmode
     private ElapsedTime runtime = new ElapsedTime();
 
-    // Constants (Except for claw offset?)
-    double clawOffset = 0.0;
+    // Constants
     final double COUNTS_PER_DEGREE = 4;
-    final double CLAW_SPEED = 0.02;
 
     // Tensorflow variables
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -46,10 +56,11 @@ public class CompetitionAuto extends LinearOpMode {
 
     // API key in order to get access to the vuforia library
     private static final String VUFORIA_KEY =
-                    "AcpsyBb/////AAABmU29bF3HdkvIocXaucsm3TJpvnPnJLn/FLfZMsVu3E7dEtnQaxTDq0uGZev7uB3edznX33u" + "M8wIzZ5Q+eCe/CPKmw+SZzsBw6k3IDh76mtYpnDlqTHPwlheJ236xzf8CaC91sXjGRliLaEYdvr+JztgAZe" +
-                    "wY5vUd4+aYGBZZLAU/4Ur4RpvjwhNuy9z78K5In4R4T+WoikzFRIW27prJv9veYWOKTYZFj8xMsj+4nORRDSNXiYZ" +
-                    "pv7nG9cdOO7Pqvv+ZeaMZCLYTEv1ZL8yT8NyRP+kBPFpdmBYr2DW6uZmv8bUTJ68ZG1IEQ2Pt3bLeP6bWWy3Z0B" +
-                    "hYNdButQ8Zt3Y9xINvVtEjVkHQZ5ovquV/";
+                    "AcpsyBb/////AAABmU29bF3HdkvIocXaucsm3TJpvnPnJLn/FLfZMsVu3E7dEtnQaxTDq0uGZev7uB3edznX33u" +
+                            "M8wIzZ5Q+eCe/CPKmw+SZzsBw6k3IDh76mtYpnDlqTHPwlheJ236xzf8CaC91sXjGRliLaEYdvr+JztgAZe" +
+                            "wY5vUd4+aYGBZZLAU/4Ur4RpvjwhNuy9z78K5In4R4T+WoikzFRIW27prJv9veYWOKTYZFj8xMsj+4nORRDSNXiYZ" +
+                            "pv7nG9cdOO7Pqvv+ZeaMZCLYTEv1ZL8yT8NyRP+kBPFpdmBYr2DW6uZmv8bUTJ68ZG1IEQ2Pt3bLeP6bWWy3Z0B" +
+                            "hYNdButQ8Zt3Y9xINvVtEjVkHQZ5ovquV/";
 
     // The instance of the vuforia localilzer engine that the partly usesopmode uses
     private VuforiaLocalizer vuforia;
@@ -72,6 +83,19 @@ public class CompetitionAuto extends LinearOpMode {
 
         // Initializing our subassemblies' motors and servos
         wobbleArm = hardwareMap.dcMotor.get("wobblearm");
+        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+        wobbleServo = hardwareMap.servo.get("wobbleservo");
+        shooterServo = hardwareMap.servo.get("shooterservo");
+        frontRoller = hardwareMap.dcMotor.get("frontroller");
+        bottomRoller = hardwareMap.dcMotor.get("bottomroller");
+
+        // Setting the modes
+        frontRoller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        bottomRoller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        wobbleArm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooter.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that first
         initVuforia();
@@ -201,9 +225,35 @@ public class CompetitionAuto extends LinearOpMode {
         wobbleArm.setPower(Math.abs(speed));
     }
 
-    // TODO: make 1 ring and 3 ring functions
-    // TODO: make wobble claw close and open functions
+    // PIDF shooting function
+    public void setBasicVelocity(double power) {
+        encoderVelo = -((power * (100)) * 28);
+        shooter.setVelocityPIDFCoefficients(PID.p, PID.i, PID.d, MaxStaticVelocity.maxStaticPIDFVelocity);
+        shooter.setVelocity(encoderVelo);
+    }
 
+    public void shooterOn(double power) { setBasicVelocity(power); }
+
+    public void terminateShooter() { shooter.setPower(0); }
+
+    public void shootRing(double speed, int times) {
+        shooterOn(speed);
+        delay(0.3);
+        for (int i = 0; i < times; i++) {
+            flick();
+        }
+    }
+
+    public void flick() {
+        shooterServo.setPosition(0.2);
+        delay(0.6);
+        shooterServo.setPosition(0.05);
+    }
+    public void wobbleManipulation(boolean open) {
+        if (open) {
+            wobbleServo.setPosition(0.5);
+        } else { wobbleServo.setPosition(0.85); }
+    }
 
     // Target zone functions
 
