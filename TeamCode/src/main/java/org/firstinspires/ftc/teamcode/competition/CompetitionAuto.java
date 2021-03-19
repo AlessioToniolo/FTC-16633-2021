@@ -56,11 +56,7 @@ public class CompetitionAuto extends LinearOpMode {
 
     // API key in order to get access to the vuforia library
     private static final String VUFORIA_KEY =
-                    "AcpsyBb/////AAABmU29bF3HdkvIocXaucsm3TJpvnPnJLn/FLfZMsVu3E7dEtnQaxTDq0uGZev7uB3edznX33u" +
-                            "M8wIzZ5Q+eCe/CPKmw+SZzsBw6k3IDh76mtYpnDlqTHPwlheJ236xzf8CaC91sXjGRliLaEYdvr+JztgAZe" +
-                            "wY5vUd4+aYGBZZLAU/4Ur4RpvjwhNuy9z78K5In4R4T+WoikzFRIW27prJv9veYWOKTYZFj8xMsj+4nORRDSNXiYZ" +
-                            "pv7nG9cdOO7Pqvv+ZeaMZCLYTEv1ZL8yT8NyRP+kBPFpdmBYr2DW6uZmv8bUTJ68ZG1IEQ2Pt3bLeP6bWWy3Z0B" +
-                            "hYNdButQ8Zt3Y9xINvVtEjVkHQZ5ovquV/";
+                    "AcpsyBb/////AAABmU29bF3HdkvIocXaucsm3TJpvnPnJLn/FLfZMsVu3E7dEtnQaxTDq0uGZev7uB3edznX33uM8wIzZ5Q+eCe/CPKmw+SZzsBw6k3IDh76mtYpnDlqTHPwlheJ236xzf8CaC91sXjGRliLaEYdvr+JztgAZewY5vUd4+aYGBZZLAU/4Ur4RpvjwhNuy9z78K5In4R4T+WoikzFRIW27prJv9veYWOKTYZFj8xMsj+4nORRDSNXiYZpv7nG9cdOO7Pqvv+ZeaMZCLYTEv1ZL8yT8NyRP+kBPFpdmBYr2DW6uZmv8bUTJ68ZG1IEQ2Pt3bLeP6bWWy3Z0BhYNdButQ8Zt3Y9xINvVtEjVkHQZ5ovquV/";
 
     // The instance of the vuforia localilzer engine that the partly usesopmode uses
     private VuforiaLocalizer vuforia;
@@ -77,7 +73,7 @@ public class CompetitionAuto extends LinearOpMode {
         drive = new SampleMecanumDrive(hardwareMap);
 
         // Where the robot starts (RIGHT RED LINE for all target zones)
-        startPose = new Pose2d(-63, -50, Math.toRadians(0));
+        startPose = new Pose2d(-63, -50, Math.toRadians(180));
         // Setting the first pose to where we start
         drive.setPoseEstimate(startPose);
 
@@ -122,15 +118,15 @@ public class CompetitionAuto extends LinearOpMode {
         waitForStart();
 
         // The variable that holds the amount of rings in the starter stack
-        int count = 0;
+        int count = 2;
 
         // The variable that holds which target zone
         String label = "None";
 
         if (opModeIsActive()) {
-            while (opModeIsActive()) {
-                while (count > 120) {
-                    count += 1;
+            runtime.reset();
+            while (opModeIsActive() && runtime.seconds() < count) {
+                    //count += 1;
                     if (tfod != null) {
                         // getUpdatedRecognitions() will return null if no new information is available since
                         // the last time that call was made.
@@ -150,7 +146,6 @@ public class CompetitionAuto extends LinearOpMode {
                             telemetry.update();
                         }
                     }
-                }
             }
         }
 
@@ -260,7 +255,8 @@ public class CompetitionAuto extends LinearOpMode {
     // Target A (0 rings)
     public void targetA() {
         // TODO: sample movement for now, not real autonomous movement
-        Trajectory traj1 = drive.trajectoryBuilder(startPose)
+        // TODO: ? does one need to define the angle too
+        Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
                 .splineTo(new Vector2d(-7.5, -60.0), 0.0)
                 .build();
         drive.followTrajectory(traj1);

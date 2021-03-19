@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -17,13 +18,17 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.utility.MaxStaticVelocity;
 import org.firstinspires.ftc.teamcode.utility.PoseStorage;
 
-@TeleOp(group = "competition")
+@TeleOp
 public class CompetitionTeleop extends LinearOpMode {
 
     // Runtime
     ElapsedTime runtime = new ElapsedTime();
+
+    // PIDF
+    public static PIDCoefficients PID = new PIDCoefficients(14,0,10);
 
     // Shooter Toggle Fields
     boolean prevValueShooter = false;
@@ -32,9 +37,13 @@ public class CompetitionTeleop extends LinearOpMode {
     double hardwareShooterAngle = 15;
     Pose2d poseEstimate;
     Pose2d updatePose;
+    double encoderVelo;
+
+    DcMotorEx shooter;
 
     @Override
     public void runOpMode() throws InterruptedException {
+
 
         // IMU Fields
         BNO055IMU imu;
@@ -55,7 +64,7 @@ public class CompetitionTeleop extends LinearOpMode {
         double armMotorPower = 0;
 
         // Shooter motor
-        DcMotorEx shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
 
         frontRoller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bottomRoller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -209,5 +218,12 @@ public class CompetitionTeleop extends LinearOpMode {
             //telemetry.addData("Path", "Leg 1: %2.5f S Elapsed", runtime.seconds());
             //telemetry.update();
         }
+    }
+
+    // PIDF shooting function
+    public void setBasicVelocity(double power) {
+        encoderVelo = -((power * (100)) * 28);
+        shooter.setVelocityPIDFCoefficients(PID.p, PID.i, PID.d, MaxStaticVelocity.maxStaticPIDFVelocity);
+        shooter.setVelocity(encoderVelo);
     }
 }
