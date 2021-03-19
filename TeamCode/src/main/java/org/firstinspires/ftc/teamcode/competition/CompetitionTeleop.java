@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.competition;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -14,6 +16,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.utility.PoseStorage;
 
 @TeleOp(group = "competition")
 public class CompetitionTeleop extends LinearOpMode {
@@ -25,6 +29,10 @@ public class CompetitionTeleop extends LinearOpMode {
     boolean prevValueShooter = false;
     boolean toggleShooter = false;
 
+    double hardwareShooterAngle = 15;
+    Pose2d poseEstimate;
+    Pose2d updatePose;
+
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -33,12 +41,6 @@ public class CompetitionTeleop extends LinearOpMode {
         Orientation angles;
         Acceleration gravity;
         BNO055IMU.Parameters imuParameters;
-
-        // Drive motors
-        DcMotor leftFront = hardwareMap.dcMotor.get("leftfront");
-        DcMotor rightFront = hardwareMap.dcMotor.get("rightfront");
-        DcMotor leftRear = hardwareMap.dcMotor.get("leftrear");
-        DcMotor rightRear = hardwareMap.dcMotor.get("rightrear");
 
         // Servos
         Servo wobbleServo = hardwareMap.servo.get("wobbleservo");
@@ -55,11 +57,6 @@ public class CompetitionTeleop extends LinearOpMode {
         // Shooter motor
         DcMotorEx shooter = hardwareMap.get(DcMotorEx.class, "shooter");
 
-        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         frontRoller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bottomRoller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -67,60 +64,36 @@ public class CompetitionTeleop extends LinearOpMode {
 
         shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        leftFront.setDirection(DcMotor.Direction.FORWARD);
-        leftRear.setDirection(DcMotorSimple.Direction.FORWARD);
-        rightFront.setDirection(DcMotor.Direction.REVERSE);
-        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-        // IMU Initialization
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imuParameters = new BNO055IMU.Parameters();
-        imuParameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        imuParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        imuParameters.loggingEnabled = false;
-        imu.initialize(imuParameters);
+        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        drive.setPoseEstimate(PoseStorage.currentPose);
 
         // Opmode
         waitForStart();
         while(opModeIsActive() && !isStopRequested()) {
 
-            // IMU Data
-            angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-            double imuAngle = angles.firstAngle;
+            drive.update();
 
-            // Compute field centric vector
-            double theta;
-            if (Math.abs(gamepad1.left_stick_x) < 0.05)
-            {
-                theta = Math.atan(gamepad1.left_stick_y/0.05);
-            }
-            else {
-                if (gamepad1.left_stick_x < 0) {
-                    theta = Math.atan((-1*gamepad1.left_stick_y)/(gamepad1.left_stick_x));
-                    //theta = Math.atan((gamepad1.left_stick_y)/(gamepad1.left_stick_x));
-                }
-                else {
-                    theta = Math.atan(gamepad1.left_stick_y/gamepad1.left_stick_x);
-                }
-            }
-            double mag = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
-            theta = theta - Math.PI/2;
-            if (gamepad1.left_stick_x > 0) {
-                theta = theta * -1;
-            }
-            double newTheta = theta - ((imuAngle/360.0) * 2 * Math.PI);
+            poseEstimate = drive.getPoseEstimate();
 
-            // Compute power for wheels
-            double leftFrontPower = mag * Math.cos(newTheta + (Math.PI/4)) - gamepad1.right_stick_x;
-            double rightFrontPower = mag * Math.sin(newTheta + (Math.PI/4)) + gamepad1.right_stick_x;
-            double leftRearPower = mag * Math.sin(newTheta + (Math.PI/4)) - gamepad1.right_stick_x;
-            double rightRearPower = mag * Math.cos(newTheta + (Math.PI/4)) + gamepad1.right_stick_x;
+            // TODO: figure out adjustment
+            double poseRight = -poseEstimate.getHeading() + 180;
 
-            // Set motor powers
-            leftFront.setPower(leftFrontPower);
-            leftRear.setPower(leftRearPower);
-            rightFront.setPower(rightFrontPower);
-            rightRear.setPower(rightRearPower);
+            // Our field centric driving
+            Vector2d input = new Vector2d(
+                    -gamepad1.left_stick_y,
+                    -gamepad1.left_stick_x
+            ).rotated(poseRight);
+
+            drive.setWeightedDrivePower(
+                    // TODO: add speed control
+                    new Pose2d(
+                            input.getX(),
+                            input.getY(),
+                            -gamepad1.right_stick_x
+                    )
+            );
 
             // Intake
             if (gamepad1.dpad_down) {
@@ -142,6 +115,11 @@ public class CompetitionTeleop extends LinearOpMode {
                 wobbleServo.setPosition(0.85);
             }
 
+            // Trig angle adjustment
+            if (gamepad1.a) {
+                drive.turnAsync(trigAngle());
+            }
+
             // Wobble Arm
             armMotorPower = gamepad1.right_trigger - gamepad1.left_trigger;
             if (armMotorPower > 0.4) {
@@ -156,6 +134,13 @@ public class CompetitionTeleop extends LinearOpMode {
                 shooterServo.setPosition(0.2);
                 delay(0.6);
                 shooterServo.setPosition(0.05);
+            }
+
+            // TODO: figure out reset
+            updatePose = new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 0.0);
+
+            if (gamepad1.x) {
+                drive.setPoseEstimate(updatePose);
             }
 
             // Shooter Toggle
@@ -177,6 +162,35 @@ public class CompetitionTeleop extends LinearOpMode {
             telemetry.addData("RPM: ", shooter.getVelocity());
             telemetry.update();
         }
+    }
+
+    public double trigAngle() {
+        // A is along the Y axis (RoadRunner Coordinate System)
+        // Y value can return same angle when positive with conditional at end
+        double diffA = 72 - Math.abs(poseEstimate.getY());
+        // B is along the X axis (RoadRunner Coordinate System)
+        double diffB;
+
+        // Accounting for negative X values
+        if (poseEstimate.getX() < 0) {
+            diffB = 72 + (72 - Math.abs(poseEstimate.getX()));
+        } else {
+            // For positive X values
+            diffB = 72 - poseEstimate.getX();
+        }
+
+        // Find angle with atan2 of A over B
+        double adjustment = Math.toDegrees(Math.atan2(diffA, diffB));
+
+        // For making sure turning is the right way
+        if (poseEstimate.getY() > 0) {
+            adjustment = -(adjustment);
+        } else {
+            adjustment = Math.abs(adjustment);
+        }
+
+        // For RoadRunner criteria
+        return Math.toRadians(adjustment);
     }
 
     // Sample Delay Code
