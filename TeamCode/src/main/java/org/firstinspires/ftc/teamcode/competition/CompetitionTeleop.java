@@ -171,6 +171,15 @@ public class CompetitionTeleop extends LinearOpMode {
         // B is along the X axis (RoadRunner Coordinate System)
         double diffB;
 
+        // We can assume that if the field is remote for RIGHT
+        // The length of the field will be 96", with the max Y value:
+        // 24
+        // And the minimum Y value will be
+        // - 72
+
+        // TODO: test and make changes for aligning to the right goal and
+        // aliging with a bit of offset because of the robot
+
         // Accounting for negative X values
         if (poseEstimate.getX() < 0) {
             diffB = 72 + (72 - Math.abs(poseEstimate.getX()));
