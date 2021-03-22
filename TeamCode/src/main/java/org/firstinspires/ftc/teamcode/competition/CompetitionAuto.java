@@ -259,8 +259,61 @@ public class CompetitionAuto extends LinearOpMode {
 
     // Target A (0 rings)
     public void targetA() {
+
         Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
-                .splineTo(new Vector2d(-9, -55.0), 0.0)
+                .splineTo(new Vector2d(-2.8, -62.0), 0.0)
+                .addDisplacementMarker(() -> {
+                    wobbleManipulation(true);
+                })
+                .addTemporalMarker(0.5, () -> {
+                    wobbleArmDegSet(1, 260, 5);
+                })
+                .addDisplacementMarker(() -> {
+                    wobbleArmDegSet(1, -260, 5);
+                })
+                .build();
+        Trajectory traj2 = drive.trajectoryBuilder(traj1.end())
+                .lineToSplineHeading(new Pose2d(-4.5, -38, Math.toRadians(175)))
+                .build();
+        Trajectory traj3 = drive.trajectoryBuilder(traj2.end(), true)
+                .addTemporalMarker(0.5, () -> {
+                    setBasicVelocity(0.0);
+                })
+                .lineTo(new Vector2d(-28, -20))
+                .addTemporalMarker(0.5, () -> {
+                    wobbleArmDegSet(1, 25, 5);
+                })
+                .build();
+        Trajectory traj4 = drive.trajectoryBuilder(traj3.end().plus(new Pose2d(0, 0, 185)))
+                .forward(5)
+                .addDisplacementMarker(() -> {
+                    wobbleManipulation(false);
+                })
+                .splineTo(new Vector2d(-12.5, -60), 0.0)
+                .addDisplacementMarker(() -> {
+                    wobbleManipulation(true);
+                })
+                .splineTo(new Vector2d(8, -38), 0.0)
+                .build();
+
+        Trajectory traj5 = drive.trajectoryBuilder(traj2.end())
+                .forward(-20)
+                .build();
+
+        drive.followTrajectory(traj1);
+        drive.followTrajectory(traj2);
+        shootRing(0.975, 3);
+        drive.followTrajectory(traj5);
+        drive.turnAsync(Math.toRadians(180));
+        delay(3);
+        //drive.followTrajectory(traj3);
+        //drive.turnAsync(0);
+        //drive.followTrajectory(traj4);
+
+
+        /*
+        Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
+                .splineTo(new Vector2d(-6, -62.0), 0.0)
                 .addDisplacementMarker(() -> {
                     wobbleManipulation(true);
                 })
@@ -268,46 +321,98 @@ public class CompetitionAuto extends LinearOpMode {
                     wobbleArmDegSet(1, 260, 5);
                 })
                 .build();
-        Trajectory traj2 = drive.trajectoryBuilder(traj1.end().plus(new Pose2d(0, 0, Math.toRadians(-90))))
-                .lineToSplineHeading(new Pose2d(-4.5, -38, Math.toRadians(190)))
-                .build();
-        Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
-                .splineToSplineHeading(new Pose2d(-28, -20, Math.toRadians(0.0)), 0.0)
+        Trajectory traj2 = drive.trajectoryBuilder(traj1.end(), true)
+                .splineToLinearHeading(new Pose2d(-60, -50, 270), 0.0)
                 .addTemporalMarker(0.5, () -> {
-                    wobbleArmDegSet(1, 300, 5);
+                    wobbleArmDegSet(1, 25, 5);
                 })
                 .build();
-        Trajectory traj4 = drive.trajectoryBuilder(traj3.end())
-                .forward(-5)
+        Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
+                .splineTo(new Vector2d(-60, -45), 0.0)
                 .addDisplacementMarker(() -> {
                     wobbleManipulation(false);
                 })
-                .splineToSplineHeading(new Pose2d(-12.5, -60, Math.toRadians(180)), 0.0)
+                .splineTo(new Vector2d(-60, -50), 0.0)
+                .addDisplacementMarker(() -> {
+                    wobbleArmDegSet(1, -25, 5);
+                })
+                .build();
+        Trajectory traj4 = drive.trajectoryBuilder(traj3.end())
+                .splineToLinearHeading(new Pose2d(-9, -62, Math.toRadians(180)), 0.0)
                 .addDisplacementMarker(() -> {
                     wobbleManipulation(true);
                 })
-                .splineTo(new Vector2d(8, -38), 0.0)
+                .build();
+        Trajectory traj5 = drive.trajectoryBuilder(traj4.end())
+                .lineToSplineHeading(new Pose2d(-4.5, -38, Math.toRadians(175)))
                 .build();
 
         drive.followTrajectory(traj1);
-        drive.turn(Math.toRadians(-90));
         drive.followTrajectory(traj2);
-        shootRing(0.95, 3);
         drive.followTrajectory(traj3);
         drive.followTrajectory(traj4);
-        drive.turn(Math.toRadians(0));
-
-        PoseStorage.currentPose = drive.getPoseEstimate();
+        drive.followTrajectory(traj5);
+        shootRing(0.95, 3);
+         */
     }
 
     // Target A (1 rings)
     public void targetB() {
+        Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
+                .splineTo(new Vector2d(38, -61.5), 0.0)
+                .addDisplacementMarker(() -> {
+                    wobbleManipulation(true);
+                })
+                .addTemporalMarker(0.5, () -> {
+                    wobbleArmDegSet(1, 260, 5);
+                })
+                .build();
+        Trajectory traj2 = drive.trajectoryBuilder(traj1.end())
+                .addDisplacementMarker(() -> {
+                    wobbleArmDegSet(1, -260, 5);
+                })
+                .lineToSplineHeading(new Pose2d(-10, -38, Math.toRadians(175)))
+                .build();
+        Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
+                .forward(-20)
+                .build();
 
+        drive.followTrajectory(traj1);
+        drive.followTrajectory(traj2);
+        shootRing(0.975, 3);
+        drive.followTrajectory(traj3);
+        drive.turnAsync(Math.toRadians(180));
+        delay(3);
     }
 
     // Target A (4 rings)
     public void targetC() {
+        Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
+                .splineTo(new Vector2d(-26, -52), 0.0)
+                .splineTo(new Vector2d(38, -61.5), 0.0)
+                .addDisplacementMarker(() -> {
+                    wobbleManipulation(true);
+                })
+                .addTemporalMarker(0.5, () -> {
+                    wobbleArmDegSet(1, 260, 5);
+                })
+                .build();
+        Trajectory traj2 = drive.trajectoryBuilder(traj1.end())
+                .addDisplacementMarker(() -> {
+                    wobbleArmDegSet(1, -260, 5);
+                })
+                .lineToSplineHeading(new Pose2d(-10, -38, Math.toRadians(175)))
+                .build();
+        Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
+                .forward(-20)
+                .build();
 
+        drive.followTrajectory(traj1);
+        drive.followTrajectory(traj2);
+        shootRing(0.975, 3);
+        drive.followTrajectory(traj3);
+        drive.turnAsync(Math.toRadians(180));
+        delay(3);
     }
 }
 
