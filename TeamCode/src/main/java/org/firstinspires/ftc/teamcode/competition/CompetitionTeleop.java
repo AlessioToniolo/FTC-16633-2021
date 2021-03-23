@@ -44,12 +44,35 @@ public class CompetitionTeleop extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
+        // Drive motors
+        DcMotor leftFront = hardwareMap.dcMotor.get("leftfront");
+        DcMotor rightFront = hardwareMap.dcMotor.get("rightfront");
+        DcMotor leftRear = hardwareMap.dcMotor.get("leftrear");
+        DcMotor rightRear = hardwareMap.dcMotor.get("rightrear");
+
+        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        leftFront.setDirection(DcMotor.Direction.FORWARD);
+        leftRear.setDirection(DcMotorSimple.Direction.FORWARD);
+        rightFront.setDirection(DcMotor.Direction.REVERSE);
+        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // IMU Fields
         BNO055IMU imu;
         Orientation angles;
         Acceleration gravity;
         BNO055IMU.Parameters imuParameters;
+
+        // IMU Initialization
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imuParameters = new BNO055IMU.Parameters();
+        imuParameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        imuParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imuParameters.loggingEnabled = false;
+        imu.initialize(imuParameters);
 
         // Servos
         Servo wobbleServo = hardwareMap.servo.get("wobbleservo");
@@ -73,36 +96,51 @@ public class CompetitionTeleop extends LinearOpMode {
 
         shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-
-        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        drive.setPoseEstimate(PoseStorage.currentPose);
+        telemetry.addData("IMPORTANT:", "YOU ARE NOW READY TO BEGIN THE OPMODE");
+        telemetry.update();
 
         // Opmode
         waitForStart();
         while(opModeIsActive() && !isStopRequested()) {
 
-            drive.update();
+            // IMU Data
+            angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+            double imuAngle = angles.firstAngle + 90;
 
-            poseEstimate = drive.getPoseEstimate();
+            // Compute field centric vector
+            // Pre adjusting for end of auto
+            double theta;
+            if (Math.abs(gamepad1.left_stick_x) < 0.05)
+            {
+                theta = Math.atan(gamepad1.left_stick_y/0.05);
+            }
+            else {
+                if (gamepad1.left_stick_x < 0) {
+                    theta = Math.atan((-1*gamepad1.left_stick_y)/(gamepad1.left_stick_x));
+                    //theta = Math.atan((gamepad1.left_stick_y)/(gamepad1.left_stick_x));
+                }
+                else {
+                    theta = Math.atan(gamepad1.left_stick_y/gamepad1.left_stick_x);
+                }
+            }
+            double mag = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
+            theta = theta - Math.PI/2;
+            if (gamepad1.left_stick_x > 0) {
+                theta = theta * -1;
+            }
+            double newTheta = theta - ((imuAngle/360.0) * 2 * Math.PI);
 
-            // TODO: figure out adjustment
-            double poseRight = -poseEstimate.getHeading() + 180;
+            // Compute power for wheels
+            double leftFrontPower = mag * Math.cos(newTheta + (Math.PI/4)) - gamepad1.right_stick_x;
+            double rightFrontPower = mag * Math.sin(newTheta + (Math.PI/4)) + gamepad1.right_stick_x;
+            double leftRearPower = mag * Math.sin(newTheta + (Math.PI/4)) - gamepad1.right_stick_x;
+            double rightRearPower = mag * Math.cos(newTheta + (Math.PI/4)) + gamepad1.right_stick_x;
 
-            // Our field centric driving
-            Vector2d input = new Vector2d(
-                    -gamepad1.left_stick_y,
-                    -gamepad1.left_stick_x
-            ).rotated(poseRight);
-
-            drive.setWeightedDrivePower(
-                    // TODO: add speed control
-                    new Pose2d(
-                            input.getX(),
-                            input.getY(),
-                            -gamepad1.right_stick_x
-                    )
-            );
+            // Set motor powers
+            leftFront.setPower(leftFrontPower);
+            leftRear.setPower(leftRearPower);
+            rightFront.setPower(rightFrontPower);
+            rightRear.setPower(rightRearPower);
 
             // Intake
             if (gamepad1.dpad_down) {
@@ -123,12 +161,6 @@ public class CompetitionTeleop extends LinearOpMode {
             if (gamepad1.right_bumper) {
                 wobbleServo.setPosition(0.85);
             }
-
-            // Trig angle adjustment
-            if (gamepad1.a) {
-                drive.turnAsync(trigAngle());
-            }
-
             // Wobble Arm
             armMotorPower = gamepad1.right_trigger - gamepad1.left_trigger;
             if (armMotorPower > 0.4) {
@@ -143,13 +175,6 @@ public class CompetitionTeleop extends LinearOpMode {
                 shooterServo.setPosition(0.2);
                 delay(0.6);
                 shooterServo.setPosition(0.05);
-            }
-
-            // TODO: figure out reset
-            updatePose = new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 0.0);
-
-            if (gamepad1.x) {
-                drive.setPoseEstimate(updatePose);
             }
 
             // Shooter Toggle
@@ -171,44 +196,6 @@ public class CompetitionTeleop extends LinearOpMode {
             telemetry.addData("RPM: ", shooter.getVelocity());
             telemetry.update();
         }
-    }
-
-    public double trigAngle() {
-        // A is along the Y axis (RoadRunner Coordinate System)
-        // Y value can return same angle when positive with conditional at end
-        double diffA = 72 - Math.abs(poseEstimate.getY());
-        // B is along the X axis (RoadRunner Coordinate System)
-        double diffB;
-
-        // We can assume that if the field is remote for RIGHT
-        // The length of the field will be 96", with the max Y value:
-        // 24
-        // And the minimum Y value will be
-        // - 72
-
-        // TODO: test and make changes for aligning to the right goal and
-        // aliging with a bit of offset because of the robot
-
-        // Accounting for negative X values
-        if (poseEstimate.getX() < 0) {
-            diffB = 72 + (72 - Math.abs(poseEstimate.getX()));
-        } else {
-            // For positive X values
-            diffB = 72 - poseEstimate.getX();
-        }
-
-        // Find angle with atan2 of A over B
-        double adjustment = Math.toDegrees(Math.atan2(diffA, diffB));
-
-        // For making sure turning is the right way
-        if (poseEstimate.getY() > 0) {
-            adjustment = -(adjustment);
-        } else {
-            adjustment = Math.abs(adjustment);
-        }
-
-        // For RoadRunner criteria
-        return Math.toRadians(adjustment);
     }
 
     // Sample Delay Code

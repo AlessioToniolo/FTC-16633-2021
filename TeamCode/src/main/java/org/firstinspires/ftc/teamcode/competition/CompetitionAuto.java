@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.competition;
 
 // Import statements
+import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
@@ -31,6 +32,15 @@ public class CompetitionAuto extends LinearOpMode {
 
     // Global access to the drive base
     SampleMecanumDrive drive;
+
+    // Different states
+    enum Mode {
+        NORMAL_CONTROL,
+        ALIGN_TO_POINT
+    }
+
+    private Mode currentMode = Mode.NORMAL_CONTROL;
+    private PIDFController headingController = new PIDFController(SampleMecanumDrive.HEADING_PID);
 
     // Global access to the start pose
     Pose2d startPose;
@@ -302,9 +312,9 @@ public class CompetitionAuto extends LinearOpMode {
 
         drive.followTrajectory(traj1);
         drive.followTrajectory(traj2);
-        shootRing(0.975, 3);
+        shootRing(0.93, 3);
         drive.followTrajectory(traj5);
-        drive.turnAsync(Math.toRadians(180));
+        drive.turnAsync(0 - drive.getPoseEstimate().getHeading());
         delay(3);
         //drive.followTrajectory(traj3);
         //drive.turnAsync(0);
@@ -359,6 +369,36 @@ public class CompetitionAuto extends LinearOpMode {
     // Target A (1 rings)
     public void targetB() {
         Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
+                .splineTo(new Vector2d(-26, -52), 0.0)
+                .splineTo(new Vector2d(16, -36), 0.0)
+                .addDisplacementMarker(() -> {
+                    wobbleManipulation(true);
+                })
+                .addTemporalMarker(0.5, () -> {
+                    wobbleArmDegSet(1, 260, 5);
+                })
+                .build();
+        Trajectory traj2 = drive.trajectoryBuilder(traj1.end())
+                .addDisplacementMarker(() -> {
+                    wobbleArmDegSet(1, -260, 5);
+                })
+                .lineToSplineHeading(new Pose2d(-8, -38, Math.toRadians(190)))
+                .build();
+        Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
+                .forward(-20)
+                .build();
+
+        drive.followTrajectory(traj1);
+        drive.followTrajectory(traj2);
+        shootRing(0.93, 3);
+        drive.followTrajectory(traj3);
+        drive.turnAsync(0 - drive.getPoseEstimate().getHeading());
+        delay(3);
+    }
+
+    // Target A (4 rings)
+    public void targetC() {
+        Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
                 .splineTo(new Vector2d(38, -61.5), 0.0)
                 .addDisplacementMarker(() -> {
                     wobbleManipulation(true);
@@ -379,39 +419,9 @@ public class CompetitionAuto extends LinearOpMode {
 
         drive.followTrajectory(traj1);
         drive.followTrajectory(traj2);
-        shootRing(0.975, 3);
+        shootRing(0.93, 3);
         drive.followTrajectory(traj3);
-        drive.turnAsync(Math.toRadians(180));
-        delay(3);
-    }
-
-    // Target A (4 rings)
-    public void targetC() {
-        Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
-                .splineTo(new Vector2d(-26, -52), 0.0)
-                .splineTo(new Vector2d(16, -36), 0.0)
-                .addDisplacementMarker(() -> {
-                    wobbleManipulation(true);
-                })
-                .addTemporalMarker(0.5, () -> {
-                    wobbleArmDegSet(1, 260, 5);
-                })
-                .build();
-        Trajectory traj2 = drive.trajectoryBuilder(traj1.end())
-                .addDisplacementMarker(() -> {
-                    wobbleArmDegSet(1, -260, 5);
-                })
-                .lineToSplineHeading(new Pose2d(-8, -38, Math.toRadians(175)))
-                .build();
-        Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
-                .forward(-20)
-                .build();
-
-        drive.followTrajectory(traj1);
-        drive.followTrajectory(traj2);
-        shootRing(0.975, 3);
-        drive.followTrajectory(traj3);
-        drive.turnAsync(Math.toRadians(180));
+        drive.turnAsync(0 - drive.getPoseEstimate().getHeading());
         delay(3);
     }
 }
