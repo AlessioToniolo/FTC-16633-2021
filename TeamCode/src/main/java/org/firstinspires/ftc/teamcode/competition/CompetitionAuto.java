@@ -389,7 +389,7 @@ public class CompetitionAuto extends LinearOpMode {
     public void targetC() {
         Trajectory traj1 = drive.trajectoryBuilder(startPose, true)
                 .splineTo(new Vector2d(-26, -52), 0.0)
-                .splineTo(new Vector2d(38, -61.5), 0.0)
+                .splineTo(new Vector2d(16, -36), 0.0)
                 .addDisplacementMarker(() -> {
                     wobbleManipulation(true);
                 })
@@ -401,7 +401,7 @@ public class CompetitionAuto extends LinearOpMode {
                 .addDisplacementMarker(() -> {
                     wobbleArmDegSet(1, -260, 5);
                 })
-                .lineToSplineHeading(new Pose2d(-10, -38, Math.toRadians(175)))
+                .lineToSplineHeading(new Pose2d(-8, -38, Math.toRadians(175)))
                 .build();
         Trajectory traj3 = drive.trajectoryBuilder(traj2.end())
                 .forward(-20)
